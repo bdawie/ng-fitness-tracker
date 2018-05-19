@@ -1,0 +1,34 @@
+<section>
+  <form
+    fxLayout="column"
+    fxLayoutAlign="center center"
+    fxLayoutGap="10px"
+    [formGroup]="loginForm"
+    (ngSubmit)="onSubmit()">
+
+    <mat-form-field>
+      <input
+        type="email"
+        matInput
+        required
+        placeholder="Your E-mail"
+        formControlName="email"
+        >
+        <mat-error *ngIf="loginForm.get('email').hasError('required')">E-mail is required</mat-error>
+        <mat-error *ngIf="!loginForm.get('email').hasError('required')">Invalid email Address!</mat-error>
+    </mat-form-field>
+    <mat-form-field>
+        <input
+          type="password"
+          matInput
+          required
+          placeholder="Your Password"
+          formControlName="password">
+          <mat-error *ngIf="loginForm.get('password').hasError('required')">Passowrd is required</mat-error>
+      </mat-form-field>
+      <button
+        mat-raised-button
+        color="primary"
+        type='submit' [disabled]="loginForm.invalid">Submit</button>
+  </form>
+</section>

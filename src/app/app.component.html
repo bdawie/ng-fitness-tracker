@@ -1,0 +1,11 @@
+<mat-sidenav-container>
+  <mat-sidenav #sidenav role="navigation">
+    <app-sidenav-list [sidenav]="sidenav"></app-sidenav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <app-header [sidenav]="sidenav"></app-header>
+    <main>
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
