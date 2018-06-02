@@ -1,30 +1,62 @@
-import { Subject } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { AngularFirestore } from 'angularfire2/firestore';
+import { Subject, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+import { UIService } from './../shared/ui.service';
 import { Exercise } from './exercise.model';
 
+@Injectable()
 export class TrainingService {
-  private availableExercises: Exercise[] = [
-    {id: 'crunches', name: 'Crunches', duration: 30, calories: 8},
-    {id: 'touch-toes', name: 'Touch Toes', duration: 180, calories: 15},
-    {id: 'side-lunges', name: 'Side Lunges', duration: 120, calories: 18},
-    {id: 'burpess', name: 'Burpess', duration: 60, calories: 8}
-  ];
-
-  private runningExercise: Exercise;
+  private availableExercises: Exercise[] = [];
   private exercises: Exercise[] = [];
 
-  exerciseStarted = new Subject<boolean>();
+  private runningExercise: Exercise;
 
-  getAvailableExercises() {
-    return this.availableExercises.slice();
+  exerciseStarted = new Subject<boolean>();
+  fetchedExercisesChanged = new Subject<Exercise[]>();
+  finishedExercisesChanged = new Subject<Exercise[]>();
+
+  afSubscriptions: Subscription[] = [];
+
+  constructor(private db: AngularFirestore, private uiService: UIService) {}
+
+  fetchAvailableExercises() {
+    this.afSubscriptions.push(this.db
+      .collection('availableExercises')
+      .snapshotChanges()
+      .pipe(
+        map(documents => documents.map(doc => {
+          const data = doc.payload.doc.data() as Exercise;
+          const id = doc.payload.doc.id;
+          return {
+            id,
+            name: data.name,
+            duration: data.duration,
+            calories: data.calories
+          };
+        }))
+      )
+      .subscribe((fetchedExercises: Exercise[]) => {
+        this.availableExercises = fetchedExercises;
+        this.fetchedExercisesChanged.next([...this.availableExercises]);
+        this.uiService.loadingStateChanged.next(false);
+      }, err => {
+        this.uiService.showSnackBarMessage('Loading Exercises failed, please try again!', null, 3500);
+        this.uiService.loadingStateChanged.next(false);
+        this.fetchedExercisesChanged.next(null);
+      }));
   }
 
   startExercise(selectedId: string) {
+    // this.db.doc(`availableExercises/${selectedId}`).update({lastSelected: new Date()});
+
     this.runningExercise = this.availableExercises.find(ex => ex.id === selectedId);
     this.exerciseStarted.next(true);
   }
 
   completeExercise() {
-    this.exercises.push({
+    this.saveDataToDatabse({
       ...this.runningExercise,
       date: new Date(),
       state: 'completed',
@@ -34,7 +66,7 @@ export class TrainingService {
   }
 
   cancelExercise(progress: number) {
-    this.exercises.push({
+    this.saveDataToDatabse({
       ...this.runningExercise,
       duration: this.runningExercise.duration * (progress / 100),
       calories: this.runningExercise.calories * (progress / 100),
@@ -49,7 +81,22 @@ export class TrainingService {
     return {...this.runningExercise};
   }
 
-  getCompletedOrCancelledExercises() {
-    return this.exercises.slice();
+  fetchCompletedOrCancelledExercises() {
+    this.afSubscriptions.push(this.db.collection('finishedExercises')
+      .valueChanges()
+      .subscribe((finishedExercies: Exercise[]) => {
+        this.exercises = finishedExercies;
+        this.finishedExercisesChanged.next([...this.exercises]);
+      }));
+  }
+
+  cancelSubscriptions() {
+    for (const sub of this.afSubscriptions) {
+      sub.unsubscribe();
+    }
+  }
+
+  private saveDataToDatabse(exercise: Exercise) {
+    this.db.collection('finishedExercises').add(exercise);
   }
 }
