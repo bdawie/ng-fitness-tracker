@@ -6,11 +6,13 @@ import { SharedModule } from '../shared/shared.module';
 
 import { SignupComponent } from './signup/signup.component';
 import { LoginComponent } from './login/login.component';
+import { AuthComponent } from './auth.component';
 
 @NgModule({
   declarations: [
     LoginComponent,
-    SignupComponent
+    SignupComponent,
+    AuthComponent
   ],
   imports: [
     ReactiveFormsModule,

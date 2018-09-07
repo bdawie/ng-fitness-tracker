@@ -1,10 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { AngularFirestore } from 'angularfire2/firestore';
+import { Component, OnInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { Observable, Subscription } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 
-import { UIService } from './../../shared/ui.service';
+import * as fromTraining from '../training.reducer';
+import * as fromRoot from '../../app.reducer';
 import { TrainingService } from './../training.service';
 import { Exercise } from './../exercise.model';
 
@@ -13,23 +13,19 @@ import { Exercise } from './../exercise.model';
   templateUrl: './new-training.component.html',
   styleUrls: ['./new-training.component.css']
 })
-export class NewTrainingComponent implements OnInit, OnDestroy {
-  availableExercises: Exercise[];
-  isLoading = true;
-  exercisesSubscription: Subscription;
-  loadingStateSubscription: Subscription;
-  constructor(private trainingService: TrainingService, private uiService: UIService) {}
+export class NewTrainingComponent implements OnInit {
+  availableExercises$: Observable<Exercise[]>;
+  isLoading$: Observable<boolean>;
+  constructor(
+    private trainingService: TrainingService,
+    private store: Store<fromTraining.State>
+  ) {}
 
   ngOnInit() {
-    this.loadingStateSubscription = this.uiService.loadingStateChanged.subscribe(isLoading => {
-      this.isLoading = isLoading;
-    });
-
-    this.exercisesSubscription = this.trainingService.fetchedExercisesChanged.subscribe(
-      exercies => {
-        this.availableExercises = exercies;
-      }
+    this.availableExercises$ = this.store.select(
+      fromTraining.getAvailableExercises
     );
+    this.isLoading$ = this.store.select(fromRoot.getIsLoading);
     this.fetchAvailableExercises();
   }
 
@@ -39,14 +35,5 @@ export class NewTrainingComponent implements OnInit, OnDestroy {
 
   onStartNewTraining(form: NgForm) {
     this.trainingService.startExercise(form.value.exercise);
-  }
-
-  ngOnDestroy() {
-    if (this.exercisesSubscription) {
-      this.exercisesSubscription.unsubscribe();
-    }
-    if (this.loadingStateSubscription) {
-      this.loadingStateSubscription.unsubscribe();
-    }
   }
 }

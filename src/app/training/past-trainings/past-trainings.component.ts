@@ -1,6 +1,8 @@
-import { Component, OnInit, AfterViewInit, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatSort, MatPaginator } from '@angular/material';
-import { Subscription } from 'rxjs';
+import { Store } from '@ngrx/store';
+import * as fromTraining from '../training.reducer';
+
 import { TrainingService } from './../training.service';
 import { Exercise } from './../exercise.model';
 
@@ -9,22 +11,23 @@ import { Exercise } from './../exercise.model';
   templateUrl: './past-trainings.component.html',
   styleUrls: ['./past-trainings.component.css']
 })
-export class PastTrainingsComponent implements OnInit, AfterViewInit, OnDestroy {
-
+export class PastTrainingsComponent implements OnInit, AfterViewInit {
   columnsToDisplay = ['date', 'name', 'calories', 'duration', 'state'];
   dataSource = new MatTableDataSource<Exercise>();
 
-  @ViewChild(MatSort) sort: MatSort;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-
-  finishedExerciesSubscription: Subscription;
-  constructor(private trainingService: TrainingService) { }
+  @ViewChild(MatSort)
+  sort: MatSort;
+  @ViewChild(MatPaginator)
+  paginator: MatPaginator;
+  constructor(
+    private trainingService: TrainingService,
+    private store: Store<fromTraining.State>
+  ) {}
 
   ngOnInit() {
-    this.finishedExerciesSubscription = this.trainingService.finishedExercisesChanged
-      .subscribe(finishedExercies => {
-        this.dataSource.data = finishedExercies;
-      });
+    this.store
+      .select(fromTraining.getFinishedExercises)
+      .subscribe(finsihedExs => (this.dataSource.data = finsihedExs));
     this.trainingService.fetchCompletedOrCancelledExercises();
   }
 
@@ -36,11 +39,4 @@ export class PastTrainingsComponent implements OnInit, AfterViewInit, OnDestroy 
   applyFilter(filterString: string) {
     this.dataSource.filter = filterString.trim().toLowerCase();
   }
-
-  ngOnDestroy() {
-    if (this.finishedExerciesSubscription) {
-      this.finishedExerciesSubscription.unsubscribe();
-    }
-  }
-
 }
