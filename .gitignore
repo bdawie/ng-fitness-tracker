@@ -10,7 +10,7 @@
 /node_modules
 
 # environments
-/environments
+/src/environments
 
 # IDEs and editors
 /.idea
